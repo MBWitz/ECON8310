@@ -19,3 +19,11 @@ tstat = beta/(sd)
 
 from scipy.stats import t
 pval = t.sf(tstat, (n-k))
+
+df = pd.DataFrame( {'Variable' : pd.data('cylinders', 'displacement', 'horsepower', 'weight', 'acceleration', 'modelYear',
+    'Coefficient' : #how do you pull the values from the diagonal of the beta matrix???
+    'Std Err' : #???
+    'tstat' : #???
+    'pval' : #??? })
+    
+df
