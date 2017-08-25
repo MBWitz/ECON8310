@@ -1,0 +1,21 @@
+import numpy as np
+import pandas as pd
+
+data = pd.read_csv("C:\\Users\\vdi-winuser\\Desktop\\auto-mpg.csv")
+
+import patsy as pt
+y, x = pt.dmatrices("mpg ~ cylinders + displacement + horsepower + weight + acceleration + modelYear", data=data)
+
+beta = np.linalg.solve(np.dot(x.T, x), np.dot(x.T, y))
+
+yhat = np.dot(x, beta)
+
+n = len(x)
+k = len(beta)
+var = (np.dot(y.T, y) - np.dot(y.T, yhat))/[n-k]
+
+sd = (var**(1/2))
+tstat = beta/(sd)
+
+from scipy.stats import t
+pval = t.sf(tstat, (n-k))
