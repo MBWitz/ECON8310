@@ -14,17 +14,29 @@ n = len(x)
 k = len(beta)
 var = (np.dot(y.T, y) - np.dot(y.T, yhat))/[n-k]
 
-sd = (var**(1/2))
-tstat = beta/(sd)
+cov = var*np.linalg.inv(np.dot(x.T,x))
+
+var2 = np.diag(cov)
+
+sd = np.sqrt(var2)
+
+tstat = []
+for i in range(len(beta)):
+    tstat.append(beta[i]/sd[i])
 
 from scipy.stats import t
 pval = t.sf(tstat, (n-k))
 
-df = pd.DataFrame( {'Variable' : pd.data('cylinders', 'displacement', 'horsepower', 'weight', 'acceleration', 'modelYear',
-    'Coefficient' : #how do you pull the values from the diagonal of the beta matrix???
-    'Std Err' : #???
-    'tstat' : #???
-    'pval' : #??? })
+beta = np.squeeze(beta)
+sd = np.squeeze(sd)
+tstat = np.squeeze(tstat)
+pval = np.squeeze(pval)
+
+df = pd.DataFrame( {'Variable' : ('Intercept', 'cylinders', 'displacement', 'horsepower', 'weight', 'acceleration', 'modelYear'),
+    'Coefficient' : beta,
+    'Std Err' : sd,
+    'tstat' : tstat,    
+    'pval' : pval })
     
 df
 
