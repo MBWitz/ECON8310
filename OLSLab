@@ -37,6 +37,7 @@ df = pd.DataFrame( {'Variable' : ('Intercept', 'cylinders', 'displacement', 'hor
     'Std Err' : sd,
     'tstat' : tstat,    
     'pval' : pval })
-    
+
+df = df[['Variable', 'Coefficient', 'Std Err', 'tstat', 'pval']]
 df
 
