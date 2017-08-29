@@ -1,43 +1,57 @@
+#get numbers and data reading packages
 import numpy as np
 import pandas as pd
 
+#importing data
 data = pd.read_csv("C:\\Users\\vdi-winuser\\Desktop\\auto-mpg.csv")
 
+#get statistical model package
 import patsy as pt
 y, x = pt.dmatrices("mpg ~ cylinders + displacement + horsepower + weight + acceleration + modelYear", data=data)
 
+#solving equation for beta coefficients
 beta = np.linalg.solve(np.dot(x.T, x), np.dot(x.T, y))
 
+#solve equation for yhat
 yhat = np.dot(x, beta)
 
+#define 'n' and 'k' and solve variance equation
 n = len(x)
 k = len(beta)
 var = (np.dot(y.T, y) - np.dot(y.T, yhat))/[n-k]
 
+#find covariance
 cov = var*np.linalg.inv(np.dot(x.T,x))
 
+#pulling variance values from diagonal of variance/covariance matrix
 var2 = np.diag(cov)
 
+#solve standard deviation equation
 sd = np.sqrt(var2)
 
+#solve equation for tstatistic
 tstat = []
 for i in range(len(beta)):
     tstat.append(beta[i]/sd[i])
 
+#solve equation for pvalue
 from scipy.stats import t
 pval = t.sf(tstat, (n-k))
 
+#consolidate matrices into a list of values
 beta = np.squeeze(beta)
 sd = np.squeeze(sd)
 tstat = np.squeeze(tstat)
 pval = np.squeeze(pval)
 
+#create table
 df = pd.DataFrame( {'Variable' : ('Intercept', 'cylinders', 'displacement', 'horsepower', 'weight', 'acceleration', 'modelYear'),
     'Coefficient' : beta,
     'Std Err' : sd,
     'tstat' : tstat,    
     'pval' : pval })
 
+#rearrange table into desired order
 df = df[['Variable', 'Coefficient', 'Std Err', 'tstat', 'pval']]
 df
 
