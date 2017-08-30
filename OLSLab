@@ -1,5 +1,5 @@
 #Project 1 submission
-#Group members: SM Shihab Siddiqui,
+#Group members: SM Shihab Siddiqui, Emily Ault, Molly Witzenburg
 #get numbers and data reading packages suitable for matrix form, with shortened name
 import numpy as np
 import pandas as pd
@@ -9,7 +9,7 @@ data = pd.read_csv("C:\\Users\\vdi-winuser\\Desktop\\auto-mpg.csv")
 
 #get statistical model package with shortended name
 import patsy as pt
-#use patsy to create the prropiate data structure for our regression
+#use patsy to create the aprropiate data structure for our regression
 y, x = pt.dmatrices("mpg ~ cylinders + displacement + horsepower + weight + acceleration + modelYear", data=data)
 
 #solving equation for beta coefficients
