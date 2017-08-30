@@ -1,18 +1,21 @@
-#get numbers and data reading packages
+#Project 1 submission
+#Group members: SM Shihab Siddiqui,
+#get numbers and data reading packages suitable for matrix form, with shortened name
 import numpy as np
 import pandas as pd
 
 #importing data
 data = pd.read_csv("C:\\Users\\vdi-winuser\\Desktop\\auto-mpg.csv")
 
-#get statistical model package
+#get statistical model package with shortended name
 import patsy as pt
+#use patsy to create the prropiate data structure for our regression
 y, x = pt.dmatrices("mpg ~ cylinders + displacement + horsepower + weight + acceleration + modelYear", data=data)
 
 #solving equation for beta coefficients
 beta = np.linalg.solve(np.dot(x.T, x), np.dot(x.T, y))
 
-#solve equation for yhat
+#obtaining the predicted y values (called yhat) using the estimated beta
 yhat = np.dot(x, beta)
 
 #define 'n' and 'k' and solve variance equation
@@ -29,12 +32,12 @@ var2 = np.diag(cov)
 #solve standard deviation equation
 sd = np.sqrt(var2)
 
-#solve equation for tstatistic
+#caculating t-statistic using estimated betas and standard error
 tstat = []
 for i in range(len(beta)):
     tstat.append(beta[i]/sd[i])
 
-#solve equation for pvalue
+#obtaining p values from t-tatistics
 from scipy.stats import t
 pval = t.sf(tstat, (n-k))
 
@@ -53,5 +56,5 @@ df = pd.DataFrame( {'Variable' : ('Intercept', 'cylinders', 'displacement', 'hor
 
 #rearrange table into desired order
 df = df[['Variable', 'Coefficient', 'Std Err', 'tstat', 'pval']]
-df
-
+print ("OLS Regression Results")
+print (df)
