@@ -1,0 +1,40 @@
+#Emily Ault, SM Shahib Siddiqui, Molly Witzenburg
+
+import pandas as pd
+import numpy as np
+from statsmodels.tsa.arima_model import ARIMA
+import statsmodels.tsa.stattools as st
+from bokeh.plotting import figure, show
+from datetime import datetime
+
+data = pd.read_csv("C:\\Users\\molly\\Downloads\\omahaNOAA.csv")
+
+a = data[['DATE', 'HOURLYWETBULBTEMPC']][313171:]
+
+a['DATE'] = a['DATE'].apply(lambda x:
+                           datetime.strptime(x, '%Y-%m-%d %H:%M:%S'))
+a = a.dropna()
+a.index = a['DATE']
+
+a_ts = pd.DataFrame(a['HOURLYWETBULBTEMPC'].values)
+a_ts.columns = ["HOURLYWETBULBTEMPC"]
+a_ts['DATE'] = a.index.values
+a_ts.index = a.index.values
+
+a_diff = np.diff(a_ts["HOURLYWETBULBTEMPC"])[1:]
+
+p = figure(plot_width = 1200, plot_height= 400,
+          y_axis_label = "TEMP",
+          x_axis_label = "DATE",
+          x_axis_type="datetime")
+p.line(a_ts['DATE'], a_ts['HOURLYWETBULBTEMPC'])
+
+show(p)
+
+from statsmodels.tsa.arima_model import ARIMA
+
+model = ARIMA(a_ts['HOURLYWETBULBTEMPC'], (1,1,1))
+reg = model.fit()
+res = reg.resid
+
+reg.summary()
