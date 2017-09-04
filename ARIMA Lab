@@ -1,5 +1,6 @@
 #Emily Ault, SM Shahib Siddiqui, Molly Witzenburg
 
+#import the tools we need for datetime formatting, plotting, and creating ARIMA model
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.arima_model import ARIMA
@@ -7,8 +8,10 @@ import statsmodels.tsa.stattools as st
 from bokeh.plotting import figure, show
 from datetime import datetime
 
+#import data
 data = pd.read_csv("C:\\Users\\molly\\Downloads\\omahaNOAA.csv")
 
+#slice data we want from this set: date/time and temperature C since 1988
 a = data[['DATE', 'HOURLYWETBULBTEMPC']][313171:]
 
 a['DATE'] = a['DATE'].apply(lambda x:
@@ -16,13 +19,16 @@ a['DATE'] = a['DATE'].apply(lambda x:
 a = a.dropna()
 a.index = a['DATE']
 
+#put raw data into pandas DataFrame
 a_ts = pd.DataFrame(a['HOURLYWETBULBTEMPC'].values)
 a_ts.columns = ["HOURLYWETBULBTEMPC"]
 a_ts['DATE'] = a.index.values
 a_ts.index = a.index.values
 
+#difference our selected data for Bokeh plot
 a_diff = np.diff(a_ts["HOURLYWETBULBTEMPC"])[1:]
 
+#set plot parameters and plot
 p = figure(plot_width = 1200, plot_height= 400,
           y_axis_label = "TEMP",
           x_axis_label = "DATE",
@@ -31,6 +37,7 @@ p.line(a_ts['DATE'], a_ts['HOURLYWETBULBTEMPC'])
 
 show(p)
 
+#create ARIMA model with p,d,q = 1,1,1
 from statsmodels.tsa.arima_model import ARIMA
 
 model = ARIMA(a_ts['HOURLYWETBULBTEMPC'], (1,1,1))
