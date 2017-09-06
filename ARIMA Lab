@@ -1,4 +1,4 @@
-#Emily Ault, SM Shahib Siddiqui, Molly Witzenburg
+#Emily Ault, SM Shihab Siddiqui, Molly Witzenburg
 
 #import the tools we need for datetime formatting, plotting, and creating ARIMA model
 import pandas as pd
@@ -14,6 +14,7 @@ data = pd.read_csv("C:\\Users\\molly\\Downloads\\omahaNOAA.csv")
 #slice data we want from this set: date/time and temperature C since 1988
 a = data[['DATE', 'HOURLYWETBULBTEMPC']][313171:]
 
+#format date field and make date the index of the data
 a['DATE'] = a['DATE'].apply(lambda x:
                            datetime.strptime(x, '%Y-%m-%d %H:%M:%S'))
 a = a.dropna()
