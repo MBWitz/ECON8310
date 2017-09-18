@@ -6,7 +6,7 @@ import statsmodels.tsa.stattools as st
 from bokeh.plotting import figure, show
 from datetime import datetime
 
-data = pd.read_csv("C:\\Users\\vdi-winuser\\Desktop\\omahaNOAA.csv")[-(364*24):]
+data = pd.read_csv("C:\\Users\\Molly\\Downloads\\omahaNOAA.csv")[-(364*24):]
 data= data[data.HOURLYWETBULBTEMPC!=0]
 
 # Format datetime field, set datetime as index
@@ -45,6 +45,7 @@ p = figure(plot_width=1200, plot_height=400,
           x_axis_type = "datetime")
 p.line(data.index.values, data['HOURLYStationPressure'], legend="Past Observations")
 show(p)
+
 # Difference HOURLYWETBULBTEMPC, HOURLYRelativehumidity, Hourly Windspeed data, 
 # and HOURLYStationPressure
 
@@ -60,26 +61,28 @@ model = VAR(varData)
 model.select_order()
 
 reg= model.fit(30)
+
+# Identify the last date and time of our data
 varData.tail(1)
 
 # forecast
-
 fcast = reg.forecast(varData['2015-01-01':].values, steps=50)
 
-# forecasting with a VAR model
+# forecasting with a VAR model, start with last date found above
 nextPer= pd.DataFrame(fcast,
                 pd.DatetimeIndex(
                 start=datetime(2017,4,30,17,50),
                 freq='H', periods=50),
                 columns=varData.columns)
                 
-# pm2.5 plot
+# Forecast vs actual plot
 p = figure(plot_width=800, plot_height=600, x_axis_type='datetime')
-p.line(nextPer.index.values, nextPer['HOURLYWETBULBTEMPC'], color='red', line_width=3, 
+p.line(nextPer.index.values, nextPer['HOURLYWETBULBTEMPC'], color='green', line_width=3, 
        line_dash='dashed', alpha=0.5, legend='Forecast')
 p.line(nextPer.index.values, test['HOURLYWETBULBTEMPC'], color='blue',line_width=3, 
        alpha=0.5, legend='Truth')
 show(p)
+
 
 #impulse response function
 %matplotlib inline
@@ -99,3 +102,35 @@ irf.plot_cum_effects(impulse='HOURLYWindSpeed')
 irf = reg.irf(10)
 irf.plot(impulse = 'HOURLYStationPressure')
 irf.plot_cum_effects(impulse='HOURLYStationPressure')
+
+# Import and Run SARIMAX Model to compare predictive plots
+import patsy as pt
+import statsmodels.tsa.stattools as st
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+eqn = 'HOURLYWETBULBTEMPC ~ HOURLYRelativeHumidity + HOURLYWindSpeed + HOURLYStationPressure'
+y, x = pt.dmatrices(eqn, data=data)
+
+model = SARIMAX(y[:-50], order=(2,1,0), seasonal_order=(2,1,0,24), exog=x[:-50])
+reg = model.fit(trend='nc', maxiter = 500, solver = 'nm')
+res = reg.resid
+print(reg.summary())
+
+# SARIMAX forecast. 
+fcst = reg.forecast(steps=48, exog=x[-48:]) 
+
+p=figure(plot_width = 1200, plot_height = 400, 
+        y_axis_label = "Temperature",
+        x_axis_label = "Date",
+        x_axis_type = "datetime")
+
+# Graph actual data and both forecasts on the same axis.
+# y was converted to a matrix so it must be squeezed to use in graphing
+p.line(list(range(-96,49)), np.squeeze(y)[-145:], legend = 'Past Observations')
+rng = list(range(1,51))
+p.line(rng, fcst, color = 'red', legend = 'SARIMAX')
+p.line(rng, nextPer['HOURLYWETBULBTEMPC'], color='green', line_width=3, 
+       line_dash='dashed', alpha=0.5, legend='VAR')
+
+p.legend.location = 'top_left'
+show(p)
