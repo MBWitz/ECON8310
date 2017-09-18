@@ -48,6 +48,18 @@ show(p)
 
 # Difference HOURLYWETBULBTEMPC, HOURLYRelativehumidity, Hourly Windspeed data, 
 # and HOURLYStationPressure
+#data['HOURLYWETBULBTEMPC']= data['HOURLYWETBULBTEMPC'].diff(periods=1)
+#data['HOURLYWETBULBTEMPC']= data['HOURLYWETBULBTEMPC'].diff(periods=24)
+                                 
+#data['HOURLYRelativeHumidity']= data['HOURLYRelativeHumidity'].diff(periods=1)
+#data['HOURLYRelativeHumidity']= data['HOURLYRelativeHumidity'].diff(periods=24)    
+    
+#data['HOURLYWindSpeed']= data['HOURLYWindSpeed'].diff(periods=1)
+#data['HOURLYWindSpeed']= data['HOURLYWindSpeed'].diff(periods=24)
+
+#data['HOURLYStationPressure']= data['HOURLYStationPressure'].diff(periods=1)
+#data['HOURLYStationPressure']= data['HOURLYStationPressure'].diff(periods=24)
+    
 
 # Select variables for a VAR model
 varData = data[['HOURLYWETBULBTEMPC','HOURLYRelativeHumidity',
