@@ -1,0 +1,8 @@
+
+# To check variables in a dataframe and list their data type:
+for i in NewDataTrain.columns:
+    print(str(i) + ": " + str(NewDataTrain[i].dtype))
+    
+# To check values in a field:
+NewDataTrain['REASON_CD'].unique()
+
