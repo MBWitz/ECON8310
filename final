@@ -1,0 +1,280 @@
+ONE
+import pandas as pd
+import numpy as np
+import patsy as pt
+import datetime
+from sklearn import tree
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier,\
+	BaggingClassifier, GradientBoostingClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+### IMPORT DATA, PERFORM PRE-PROCESSING
+
+data = pd.read_csv('C:\\Users\\molly\\Documents\\School\\ECON8310\\Labs\\driverdailyforunofinal.csv')
+
+# Look at columns to gain familiarity with the data
+# data.columns
+
+TWO
+# Change column name from Simulated Training to Simulated for ease of handling
+data.rename(index=str, columns={"Simulated Training":"Simulated"}, inplace=True)
+data.rename(index=str, columns={"Retention (Days)":"RetentionDays"}, inplace=True)
+
+THREE
+# convert termination_process_ts to datetime, then extract only the date (ignore the time)
+data['FiredDate'] = pd.to_datetime(data.TERMINATION_PROCESS_TS, infer_datetime_format=True).dt.date
+
+# do the same for report_dt,promotion time and hire_process_ts
+data['ReportDate'] = pd.to_datetime(data.REPORT_DT, infer_datetime_format=True).dt.date
+data['hiredDate'] = pd.to_datetime(data.HIRE_PROCESS_TS, infer_datetime_format=True).dt.date
+data['promoDate'] = pd.to_datetime(data.PROMOTION_PROCESS_TS, infer_datetime_format=True).dt.date
+
+FOUR
+# generate a dummy determining if individual was fired today
+# changed to inequality from equality, since reporting only occurs every 2 days
+#     and some individuals quit on the day between reports
+data['FiredToday'] = [int(data.FiredDate[x]<=data.ReportDate[x]) for x in range(len(data))]
+
+# process tenure variable as timedelta type
+data['daysWorked'] = (data.ReportDate - data.hiredDate).astype('timedelta64[D]')
+
+# process time to promotion variable as timedelta type
+data['promoTime'] = (data.promoDate - data.hiredDate).astype('timedelta64[D]')
+
+# process tenure after promotion as timedelta type
+data['postpromodaysworked'] = (data.ReportDate - data.promoDate).astype('timedelta64[D]')
+
+# process effective tenure as timedelta type
+data['edaysWorked'] = data[['postpromodaysworked', 'daysWorked']].max(axis=1)
+
+# process report date as datetime in order to extract day, month, and year info
+data['ReportDate'] = data['ReportDate'] .astype('datetime64[ns]')
+data['rDay'] = data.ReportDate.dt.dayofweek
+data['rMonth'] = data.ReportDate.dt.month
+data['rYear'] = data.ReportDate.dt.year
+data['rWeek'] = data.ReportDate.dt.week
+
+FIVE
+#create and download a dataframe to use for initial analysis in R.
+#dataplus = pd.DataFrame(data)
+#dataplus.to_csv('C:\\Users\\molly\\Documents\\School\\ECON8310\\Final\\dataplus.csv', index=False)
+
+SIX
+# Generating off-truck duty dummies, with NA, Term and Quit as 0 and other types as 1
+data.OFF_TRUCK_CD.unique()
+data['OFF_TRUCK_CD'].fillna(0, inplace=True)
+data['OFF_TRUCK_CD'].replace(['SUSON ', 'WKCON ', 'LOAON ', 'MEDON ', 'FMDON', 'DQUAL ', 'TRNON', 'SFPON', 'MILON ', 'JURON '], '1', inplace=True)
+data['OFF_TRUCK_CD'].replace(['TERMD ', 'VQUIT ' ], 0, inplace=True)
+data['offtruck'] = data['OFF_TRUCK_CD'].astype(float)
+data['Driver_type'].replace('Long Haul', 'Long_Haul', inplace=True)
+data['Driver_type'].replace('Regional Specialized','Specialized', inplace=True)
+
+SEVEN
+# generate dummy variables based on available categorical variables
+data = pd.concat([data, pd.get_dummies(data.GENDER_CD, prefix='gender', drop_first=True)], axis=1)
+data = pd.concat([data, pd.get_dummies(data.VETERAN_FLG, prefix='V', drop_first=True)], axis=1)
+data = pd.concat([data, pd.get_dummies(data.Max_Students, prefix='hireType', drop_first=True)], axis=1)
+data = pd.concat([data, pd.get_dummies(data.REHIRED, prefix='rehired', drop_first=True)], axis=1)
+data = pd.concat([data, pd.get_dummies(data.Simulated, prefix='simTraining', drop_first=True)], axis=1)
+data = pd.concat([data, pd.get_dummies(data.STATE_CD, prefix='state', drop_first=True)], axis=1)
+data = pd.concat([data, pd.get_dummies(data.Driver_type, prefix='driver', drop_first=True)], axis=1)
+data = pd.concat([data, pd.get_dummies(data.rDay, prefix='day', drop_first=True)], axis=1)
+data = pd.concat([data, pd.get_dummies(data.rMonth, prefix='month', drop_first=True)], axis=1)
+data = pd.concat([data, pd.get_dummies(data.rYear, prefix='year', drop_first=True)], axis=1)
+
+EIGHT
+# Create a data frame where all records have a FiredToday value of 1.
+quitterdf = pd.DataFrame(data.loc[data['FiredToday'] == 1])
+
+NINE
+# View summary of new dataframe
+# quitterdf.describe()
+
+TEN
+# Create a dataframe of all records where FiredToday is a 0.
+nonquitterdf = pd.DataFrame(data.loc[data['FiredToday'] == 0])
+
+ELEVEN
+# View summary of new dataframe
+# nonquitterdf.describe()
+
+TWELVE
+# Random sample the non-quit dataframe, take 184386 so there are a total of 200000 records to use in modeling.
+nonquitsampledf = nonquitterdf.sample(n=184386, replace=False, random_state=49, axis=None)
+
+# View summary of new dataframe
+# nonquitsampledf.describe()
+
+THIRTEEN
+# Concatenate the quitter and non-quitter dataframes to use in modeling.
+frames = [quitterdf, nonquitsampledf]
+NewData = pd.concat(frames)
+
+# Eliminate records where age is less than 16 or greater than 80
+NewData = NewData.drop(NewData[(NewData.Age < 16) & (NewData.Age > 80)].index)
+
+# View summary of new dataframe
+# NewData.describe()
+
+FOURTEEN
+# View names of new dataframe column headers
+# NewData.columns
+
+FIFTEEN
+# View first ten rows of new dataframe
+# NewData.head(n=10)
+
+SIXTEEN
+# Download new data set to csv file to share.
+NewData.to_csv('C:\\Users\\molly\\Documents\\School\\ECON8310\\Final\\NewData.csv', index=False)
+
+SEVENTEEN
+#Logistic Regression:
+
+from bokeh.plotting import figure, show
+from statsmodels.discrete.discrete_model import Logit
+
+# Read in dataset we created
+NewData = pd.read_csv('C:\\Users\\molly\\Documents\\School\\ECON8310\\Final\\NewData.csv')
+
+# Identify dependent variable. Drop all non-Boolean variables from independent variable list.
+y = NewData['FiredToday']
+x = NewData.drop(['FiredToday','Unique_ID', 'TERMINATION_PROCESS_TS','GENDER_CD','VETERAN_FLG','Max_Students',
+              'PROMOTION_PROCESS_TS','HIRE_PROCESS_TS','RetentionDays', 'CSA Count', 'percent_miles_pay',
+              'TERMINATION_TYPE_CD', 'TERMINATION_DT', 'REASON_CD','Zip5', 'REASON_DESCRIPTION_TXT',
+              'STATE_CD', 'Simulated','REHIRED','REPORT_DT','PRODUCTION_STATE_TXT','EQUIPMENT_COST_DIVISION_CD', 
+              'OFF_TRUCK_CD', 'Miles_Quantity_Total', 'DESCRIPTION_TXT','Driver_type', 'FiredDate','ReportDate', 
+              'postpromodaysworked', 'promoTime', 'hiredDate','promoDate','daysWorked','edaysWorked','rDay','rMonth',
+              'rYear','rWeek'], axis=1)           
+
+# Logit model summary of this particular set of variables
+model = Logit(y, x)
+reg = model.fit()
+print(reg.summary())
+
+EIGHTEEN
+# Generating the Tjur (pseudo-) R^2
+def tjur_function(inputMod, x, y):
+    yg = []
+    yf = []
+    preds = inputMod.predict(x)
+    for index, i in enumerate(y):
+        if i==1:
+            yg.append(preds[index])
+        else:
+            yf.append(preds[index])
+                
+    rsqrd = np.mean(yg) - np.mean(yf)
+    return rsqrd
+    
+tjur_function(reg, x, y)
+
+NINETEEN
+# Estimating the marginal effects of our regressors on the dependent variable
+mEff = reg.get_margeff(
+    at='overall', 
+    method= 'eydx',
+    dummy=True, 
+    count=True)
+
+mEff.summary()
+
+TWENTY
+# create train and test data sets
+
+#Sort the Dataframe by report date:
+NewData.sort_values('REPORT_DT', ascending=True)
+
+# Create two dataframes, one train with first 2/3 of data, the other test with last 1/3 of data
+NewDataTest = NewData[-66666:]
+NewDataTrain = NewData[: 133334]
+
+TWENTY-ONE
+# Download new data sets to csv file to share.
+#NewDataTest.to_csv('C:\\Users\\molly\\Documents\\School\\ECON8310\\Final\\NewDataTest.csv', index=False)
+#NewDataTrain.to_csv('C:\\Users\\molly\\Documents\\School\\ECON8310\\Final\\NewDataTrain.csv', index=False)
+
+TWENTY-TWO
+# The code to implement a decision tree
+from sklearn.ensemble import RandomForestClassifier, BaggingClassifier, GradientBoostingClassifier
+from sklearn.tree import DecisionTreeClassifier
+model = DecisionTreeClassifier()
+
+
+y= NewDataTrain['FiredToday']
+x= NewDataTrain.drop(['FiredToday','Unique_ID', 'TERMINATION_PROCESS_TS','GENDER_CD','VETERAN_FLG','Max_Students',
+              'PROMOTION_PROCESS_TS','HIRE_PROCESS_TS','RetentionDays', 'CSA Count', 'percent_miles_pay',
+              'TERMINATION_TYPE_CD', 'TERMINATION_DT', 'REASON_CD','Zip5', 'REASON_DESCRIPTION_TXT',
+              'STATE_CD', 'Simulated','REHIRED','REPORT_DT','PRODUCTION_STATE_TXT','EQUIPMENT_COST_DIVISION_CD', 
+              'OFF_TRUCK_CD', 'Miles_Quantity_Total', 'DESCRIPTION_TXT','Driver_type', 'FiredDate','ReportDate', 
+              'postpromodaysworked', 'promoTime', 'hiredDate','promoDate','daysWorked','edaysWorked','rDay','rMonth',
+              'rYear','rWeek'], axis=1)
+
+yt= NewDataTest['FiredToday']
+xt= NewDataTest.drop(['FiredToday','Unique_ID', 'TERMINATION_PROCESS_TS','GENDER_CD','VETERAN_FLG','Max_Students',
+              'PROMOTION_PROCESS_TS','HIRE_PROCESS_TS','RetentionDays', 'CSA Count', 'percent_miles_pay',
+              'TERMINATION_TYPE_CD', 'TERMINATION_DT', 'REASON_CD','Zip5', 'REASON_DESCRIPTION_TXT',
+              'STATE_CD', 'Simulated','REHIRED','REPORT_DT','PRODUCTION_STATE_TXT','EQUIPMENT_COST_DIVISION_CD', 
+              'OFF_TRUCK_CD', 'Miles_Quantity_Total', 'DESCRIPTION_TXT','Driver_type', 'FiredDate','ReportDate', 
+              'postpromodaysworked', 'promoTime', 'hiredDate','promoDate','daysWorked','edaysWorked','rDay','rMonth',
+              'rYear','rWeek'], axis=1)
+
+
+
+# Try a decision tree on this data set:
+from sklearn.tree import DecisionTreeClassifier
+# Generate the decision tree model
+tree = DecisionTreeClassifier(max_depth=6,min_samples_leaf=20)
+# Fit the tree to the training data
+tclf = tree.fit(x, y)
+# Make predictions
+tpred = tclf.predict(xt)
+# Print the accuracy score of the fitted model
+print("\nThe decision tree has an accuracy of : %s\n" %str(accuracy_score(tpred, yt)))
+
+TWENTY-THREE
+# Generate the random forest model with n=100
+forest = RandomForestClassifier(n_estimators=100, n_jobs = -1, random_state=42)
+# Fit the model to the training data
+fclf = forest.fit(x, y)
+# Make predictions
+fpred = fclf.predict(xt)
+# Print the accuracy score of the fitted model
+print("The random forest has an accuracy of : %s\n" % str(accuracy_score(fpred, yt)))
+
+# Generate the boosting model, also with n=100
+boost = GradientBoostingClassifier(n_estimators=100, max_depth=5, min_samples_leaf=10, random_state=42)
+# Fit the model to the training data
+boclf = boost.fit(x, y)
+# Make predictions
+bopred = boclf.predict(xt)
+# Print the accuracy score of the fitted model
+print("The boosting algorithm has an accuracy of : %s\n" % str(accuracy_score(bopred, yt)))
+
+# Generate the bagging model, with n=100
+bag = BaggingClassifier(n_estimators=100, n_jobs = -1, random_state=42)
+# Fit the model to the training data
+baclf = bag.fit(x, y)
+# Make predictions
+bapred = baclf.predict(xt)
+# Print the accuracy score of the fitted model
+print("The bagging algorithm has an accuracy of : %s\n" % str(accuracy_score(bapred, yt)))
+
+TWENTY-FOUR
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+# Generate a model with a C value of 10. Remember that 
+#    C is our error penalty term.
+modelC10 = SVC(C=10, kernel='rbf') # Linear =  , rbf =  , polynomial = %
+                                # and sigmoid = % 
+regC10 = modelC10.fit(x, y) # Fit the model
+predC10 = regC10.predict(xt) # Make predictions with test data
+
+print("\nModel accuracy is %s\n" % str(round(accuracy_score(predC10, np.ravel(yt)), 3)))
