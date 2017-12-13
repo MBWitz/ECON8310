@@ -278,3 +278,18 @@ regC10 = modelC10.fit(x, y) # Fit the model
 predC10 = regC10.predict(xt) # Make predictions with test data
 
 print("\nModel accuracy is %s\n" % str(round(accuracy_score(predC10, np.ravel(yt)), 3)))
+
+
+SVM in R
+Trainx <- Train[ -c(Train$FiredToday,Train$Unique_ID, Train$TERMINATION_PROCESS_TS,
+Train$GENDER_CD, Train$VETERAN_FLG, Train$Max_Students, Train$PROMOTION_PROCESS_TS, 
+Train$HIRE_PROCESS_TS,Train$RetentionDays, Train$CSA Count, Train$percent_miles_pay,
+Train$TERMINATION_TYPE_CD, Train$TERMINATION_DT, Train$REASON_CD, Train$Zip5,
+Train$REASON_DESCRIPTION_TXT, Train$STATE_CD, Train$Simulated, Train$REHIRED, 
+Train$REPORT_DT, Train$PRODUCTION_STATE_TXT, Train$EQUIPMENT_COST_DIVISION_CD, 
+Train$OFF_TRUCK_CD, Train$Miles_Quantity_Total, Train$DESCRIPTION_TXT, Train$Driver_type,
+Train$FiredDate, Train$ReportDate, Train$postpromodaysworked, Train$promoTime,
+Train$hiredDate, Train$promoDate, Train$daysWorked', Train$edaysWorked, Train$rDay,
+Train$rMonth, Train$rYear, Train$rWeek, Train$EQUIPMENT,
+Train$ACTIVE_PRODUCTION_STATE_CNT, Train$INACTIVE_PRODUCTION_STATE_CNT, 
+Train$AVAILABLE_PRODUCTION_STATE_CNT, Train$INVALID_PRODUCTION_STATE_CNT)]
